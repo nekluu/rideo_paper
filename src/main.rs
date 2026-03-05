@@ -31,16 +31,12 @@ struct App {
 #[derive(Debug, Clone)]
 enum Message {}
 
-
 impl App {
     fn new() -> Self {
         let current_dir = std::env::current_dir().unwrap();
         let video_path = current_dir.join(".media").join("173656-849839042.mp4");
-        
-        let mut video = Video::new(
-            &url::Url::from_file_path(&video_path).unwrap(),
-        )
-            .unwrap();
+
+        let mut video = Video::new(&url::Url::from_file_path(&video_path).unwrap()).unwrap();
         video.set_looping(true);
         Self { video }
     }
