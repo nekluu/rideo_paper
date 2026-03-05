@@ -1,27 +1,21 @@
-
-use iced::widget::{button, column, row, text, text_input};
-use iced::{Alignment, Color, Element, Event, Length, Task as Command, event};
+use iced::{Color, Element, Task};
 use iced_layershell::application;
-use iced_layershell::reexport::Anchor;
-use iced_layershell::settings::{LayerShellSettings, StartMode, Settings};
+use iced_layershell::reexport::{Anchor, Layer};
+use iced_layershell::settings::{LayerShellSettings, Settings, StartMode};
 use iced_layershell::to_layer_message;
+use iced_video_player::{Video, VideoPlayer};
 
 pub fn main() -> Result<(), iced_layershell::Error> {
-    let binded_output_name = std::env::args().nth(1);
-    let start_mode = match binded_output_name {
-        Some(output) => StartMode::TargetScreen(output),
-        None => StartMode::Active,
-    };
-
-    application(App::default, App::namespace, App::update, App::view)
+    application(App::new, App::namespace, App::update, App::view)
         .style(|app: &App, theme| app.style(theme))
-        .subscription(|app: &App| app.subscription())
+        //.subscription(|app: &App| app.subscription())
         .settings(Settings {
             layer_settings: LayerShellSettings {
-                size: Some((0, 400)),
-                exclusive_zone: 400,
-                anchor: Anchor::Bottom | Anchor::Left | Anchor::Right,
-                start_mode,
+                size: None,
+                exclusive_zone: -1,
+                anchor: Anchor::all(),
+                start_mode: StartMode::Active,
+                layer: Layer::Background,
                 ..Default::default()
             },
             ..Default::default()
@@ -29,115 +23,46 @@ pub fn main() -> Result<(), iced_layershell::Error> {
         .run()
 }
 
-#[derive(Default)]
 struct App {
-    value: i32,
-    text: String,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum WindowDirection {
-    Top,
-    Left,
-    Right,
-    Bottom,
+    video: Video,
 }
 
 #[to_layer_message]
 #[derive(Debug, Clone)]
-enum Message {
-    IncrementPressed,
-    DecrementPressed,
-    TextInput(String),
-    Direction(WindowDirection),
-    IcedEvent(Event),
-}
+enum Message {}
+
 
 impl App {
+    fn new() -> Self {
+        let current_dir = std::env::current_dir().unwrap();
+        let video_path = current_dir.join(".media").join("173656-849839042.mp4");
+        
+        let mut video = Video::new(
+            &url::Url::from_file_path(&video_path).unwrap(),
+        )
+            .unwrap();
+        video.set_looping(true);
+        Self { video }
+    }
     fn namespace() -> String {
         String::from("Counter - Iced")
     }
+    /*
+        fn subscription(&self) -> iced::Subscription<Message> {
 
-    fn subscription(&self) -> iced::Subscription<Message> {
-        event::listen().map(Message::IcedEvent)
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+        }
+    */
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::IcedEvent(event) => {
-                println!("hello {event:?}");
-                Command::none()
-            }
-            Message::IncrementPressed => {
-                self.value += 1;
-                Command::none()
-            }
-            Message::DecrementPressed => {
-                self.value -= 1;
-                Command::none()
-            }
-            Message::TextInput(text) => {
-                self.text = text;
-                Command::none()
-            }
-
-            Message::Direction(direction) => match direction {
-                WindowDirection::Left => Command::done(Message::AnchorSizeChange(
-                    Anchor::Left | Anchor::Top | Anchor::Bottom,
-                    (400, 0),
-                )),
-                WindowDirection::Right => Command::done(Message::AnchorSizeChange(
-                    Anchor::Right | Anchor::Top | Anchor::Bottom,
-                    (400, 0),
-                )),
-                WindowDirection::Bottom => Command::done(Message::AnchorSizeChange(
-                    Anchor::Bottom | Anchor::Left | Anchor::Right,
-                    (0, 400),
-                )),
-                WindowDirection::Top => Command::done(Message::AnchorSizeChange(
-                    Anchor::Top | Anchor::Left | Anchor::Right,
-                    (0, 400),
-                )),
-            },
             _ => unreachable!(),
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        let center = column![
-            button("Increment").on_press(Message::IncrementPressed),
-            text(self.value).size(50),
-            button("Decrement").on_press(Message::DecrementPressed)
-        ]
-            .align_x(Alignment::Center)
-            .padding(20)
-            .width(Length::Fill)
-            .height(Length::Fill);
-        row![
-            button("left")
-                .on_press(Message::Direction(WindowDirection::Left))
-                .height(Length::Fill),
-            column![
-                button("top")
-                    .on_press(Message::Direction(WindowDirection::Top))
-                    .width(Length::Fill),
-                center,
-                text_input("hello", &self.text)
-                    .on_input(Message::TextInput)
-                    .padding(10),
-                button("bottom")
-                    .on_press(Message::Direction(WindowDirection::Bottom))
-                    .width(Length::Fill),
-            ]
-            .width(Length::Fill),
-            button("right")
-                .on_press(Message::Direction(WindowDirection::Right))
-                .height(Length::Fill),
-        ]
-            .padding(20)
-            .spacing(10)
-            .width(Length::Fill)
-            .height(Length::Fill)
+    fn view(&self) -> Element<'_, Message> {
+        VideoPlayer::new(&self.video)
+            .width(iced::Length::Fill)
+            .height(iced::Length::Fill)
+            .content_fit(iced::ContentFit::Cover)
             .into()
     }
 

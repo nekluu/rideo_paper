@@ -3612,6 +3612,7 @@ dependencies = [
  "iced_layershell",
  "iced_video_player",
  "tokio",
+ "url",
 ]
 
 [[package]]
