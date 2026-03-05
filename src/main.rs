@@ -13,9 +13,9 @@ pub fn main() -> Result<(), iced_layershell::Error> {
         None => StartMode::Active,
     };
 
-    application(|| Counter::default(), namespace, update, view)
-        .style(style)
-        .subscription(subscription)
+    application(App::default, App::namespace, App::update, App::view)
+        .style(|app: &App, theme| app.style(theme))
+        .subscription(|app: &App| app.subscription())
         .settings(Settings {
             layer_settings: LayerShellSettings {
                 size: Some((0, 400)),
@@ -30,7 +30,7 @@ pub fn main() -> Result<(), iced_layershell::Error> {
 }
 
 #[derive(Default)]
-struct Counter {
+struct App {
     value: i32,
     text: String,
 }
@@ -53,97 +53,99 @@ enum Message {
     IcedEvent(Event),
 }
 
-fn namespace() -> String {
-    String::from("Counter - Iced")
-}
-
-fn subscription(_: &Counter) -> iced::Subscription<Message> {
-    event::listen().map(Message::IcedEvent)
-}
-
-fn update(counter: &mut Counter, message: Message) -> Command<Message> {
-    match message {
-        Message::IcedEvent(event) => {
-            println!("hello {event:?}");
-            Command::none()
-        }
-        Message::IncrementPressed => {
-            counter.value += 1;
-            Command::none()
-        }
-        Message::DecrementPressed => {
-            counter.value -= 1;
-            Command::none()
-        }
-        Message::TextInput(text) => {
-            counter.text = text;
-            Command::none()
-        }
-
-        Message::Direction(direction) => match direction {
-            WindowDirection::Left => Command::done(Message::AnchorSizeChange(
-                Anchor::Left | Anchor::Top | Anchor::Bottom,
-                (400, 0),
-            )),
-            WindowDirection::Right => Command::done(Message::AnchorSizeChange(
-                Anchor::Right | Anchor::Top | Anchor::Bottom,
-                (400, 0),
-            )),
-            WindowDirection::Bottom => Command::done(Message::AnchorSizeChange(
-                Anchor::Bottom | Anchor::Left | Anchor::Right,
-                (0, 400),
-            )),
-            WindowDirection::Top => Command::done(Message::AnchorSizeChange(
-                Anchor::Top | Anchor::Left | Anchor::Right,
-                (0, 400),
-            )),
-        },
-        _ => unreachable!(),
+impl App {
+    fn namespace() -> String {
+        String::from("Counter - Iced")
     }
-}
 
-fn view(counter: &Counter) -> Element<Message> {
-    let center = column![
-        button("Increment").on_press(Message::IncrementPressed),
-        text(counter.value).size(50),
-        button("Decrement").on_press(Message::DecrementPressed)
-    ]
-        .align_x(Alignment::Center)
-        .padding(20)
-        .width(Length::Fill)
-        .height(Length::Fill);
-    row![
-        button("left")
-            .on_press(Message::Direction(WindowDirection::Left))
-            .height(Length::Fill),
-        column![
-            button("top")
-                .on_press(Message::Direction(WindowDirection::Top))
-                .width(Length::Fill),
-            center,
-            text_input("hello", &counter.text)
-                .on_input(Message::TextInput)
-                .padding(10),
-            button("bottom")
-                .on_press(Message::Direction(WindowDirection::Bottom))
-                .width(Length::Fill),
+    fn subscription(&self) -> iced::Subscription<Message> {
+        event::listen().map(Message::IcedEvent)
+    }
+
+    fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::IcedEvent(event) => {
+                println!("hello {event:?}");
+                Command::none()
+            }
+            Message::IncrementPressed => {
+                self.value += 1;
+                Command::none()
+            }
+            Message::DecrementPressed => {
+                self.value -= 1;
+                Command::none()
+            }
+            Message::TextInput(text) => {
+                self.text = text;
+                Command::none()
+            }
+
+            Message::Direction(direction) => match direction {
+                WindowDirection::Left => Command::done(Message::AnchorSizeChange(
+                    Anchor::Left | Anchor::Top | Anchor::Bottom,
+                    (400, 0),
+                )),
+                WindowDirection::Right => Command::done(Message::AnchorSizeChange(
+                    Anchor::Right | Anchor::Top | Anchor::Bottom,
+                    (400, 0),
+                )),
+                WindowDirection::Bottom => Command::done(Message::AnchorSizeChange(
+                    Anchor::Bottom | Anchor::Left | Anchor::Right,
+                    (0, 400),
+                )),
+                WindowDirection::Top => Command::done(Message::AnchorSizeChange(
+                    Anchor::Top | Anchor::Left | Anchor::Right,
+                    (0, 400),
+                )),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    fn view(&self) -> Element<Message> {
+        let center = column![
+            button("Increment").on_press(Message::IncrementPressed),
+            text(self.value).size(50),
+            button("Decrement").on_press(Message::DecrementPressed)
         ]
-        .width(Length::Fill),
-        button("right")
-            .on_press(Message::Direction(WindowDirection::Right))
-            .height(Length::Fill),
-    ]
-        .padding(20)
-        .spacing(10)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
-}
+            .align_x(Alignment::Center)
+            .padding(20)
+            .width(Length::Fill)
+            .height(Length::Fill);
+        row![
+            button("left")
+                .on_press(Message::Direction(WindowDirection::Left))
+                .height(Length::Fill),
+            column![
+                button("top")
+                    .on_press(Message::Direction(WindowDirection::Top))
+                    .width(Length::Fill),
+                center,
+                text_input("hello", &self.text)
+                    .on_input(Message::TextInput)
+                    .padding(10),
+                button("bottom")
+                    .on_press(Message::Direction(WindowDirection::Bottom))
+                    .width(Length::Fill),
+            ]
+            .width(Length::Fill),
+            button("right")
+                .on_press(Message::Direction(WindowDirection::Right))
+                .height(Length::Fill),
+        ]
+            .padding(20)
+            .spacing(10)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
 
-fn style(_counter: &Counter, theme: &iced::Theme) -> iced::theme::Style {
-    use iced::theme::Style;
-    Style {
-        background_color: Color::TRANSPARENT,
-        text_color: theme.palette().text,
+    fn style(&self, theme: &iced::Theme) -> iced::theme::Style {
+        use iced::theme::Style;
+        Style {
+            background_color: Color::TRANSPARENT,
+            text_color: theme.palette().text,
+        }
     }
 }
