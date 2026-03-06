@@ -4,11 +4,21 @@ use iced_layershell::reexport::{Anchor, Layer};
 use iced_layershell::settings::{LayerShellSettings, Settings, StartMode};
 use iced_layershell::to_layer_message;
 use iced_video_player::{Video, VideoPlayer};
+use std::env::args;
 
 pub fn main() -> Result<(), iced_layershell::Error> {
-    application(App::new, App::namespace, App::update, App::view)
+    let arg = match args().nth(1) {
+        Some(arg) => arg,
+        None => panic!("Please provide a file name as an argument"),
+    };
+    application(
+        move || App::new(&arg),
+        App::namespace,
+        App::update,
+        App::view,
+    )
         .style(|app: &App, theme| app.style(theme))
-        //.subscription(|app: &App| app.subscription())
+        //.subscription(|app: &App| app.subscription()) TODO
         .settings(Settings {
             layer_settings: LayerShellSettings {
                 size: None,
@@ -29,13 +39,15 @@ struct App {
 
 #[to_layer_message]
 #[derive(Debug, Clone)]
-enum Message {}
+enum Message {
+    //TODO
+}
 
 impl App {
-    fn new() -> Self {
-        let current_dir = std::env::current_dir().unwrap();
-        let video_path = current_dir.join(".media").join("173656-849839042.mp4");
-
+    fn new(arg: &str) -> Self {
+        // It only works with absolute paths.
+        let video_path = std::path::PathBuf::from(arg);
+        eprintln!("{:?}", video_path);
         let mut video = Video::new(&url::Url::from_file_path(&video_path).unwrap()).unwrap();
         video.set_looping(true);
         Self { video }
@@ -45,7 +57,7 @@ impl App {
     }
     /*
         fn subscription(&self) -> iced::Subscription<Message> {
-
+            //TODO If the window is not in focus pause the video.
         }
     */
     fn update(&mut self, message: Message) -> Task<Message> {
